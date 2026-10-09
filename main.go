@@ -25,7 +25,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Received URL:", req.URL)
 		shortCode := generateShortCode()
 		urlStore[shortCode] = req.URL
-		http.Redirect(w, r, urlStore[shortCode], http.StatusFound)
 		fmt.Fprintln(w, "Short Code:", shortCode)
 		fmt.Fprintln(w, "Stored URL:", urlStore[shortCode])
 
@@ -48,11 +47,11 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 	originalURL, exists := urlStore[shortCode]
 
 	if !exists {
-		fmt.Fprintln(w, "Short URL not found")
+		http.NotFound(w, r)
 		return
 	}
 
-	fmt.Fprintln(w, "Original URL:", originalURL)
+	http.Redirect(w, r, originalURL, http.StatusFound)
 }
 
 type URLRequest struct {
