@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"math/rand"
+	"net/http"
+	"strings"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +24,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintln(w, "Received URL:", req.URL)
 		shortCode := generateShortCode()
-		fmt.Fprintln(w, "Original URL:", req.URL)
+		urlStore[shortCode] = req.URL
+		http.Redirect(w, r, urlStore[shortCode], http.StatusFound)
 		fmt.Fprintln(w, "Short Code:", shortCode)
+		fmt.Fprintln(w, "Stored URL:", urlStore[shortCode])
 
 	}
 }
@@ -33,22 +36,35 @@ func generateShortCode() string {
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	code := ""
 	for i := 0; i < 6; i++ {
-		RandomIndex := rand.Intn(len(chars))
-		code += string(chars[RandomIndex])
+		randomIndex := rand.Intn(len(chars))
+		code += string(chars[randomIndex])
 	}
 	return code
+}
+
+func redirectHandler(w http.ResponseWriter, r *http.Request) {
+
+	shortCode := strings.TrimPrefix(r.URL.Path, "/")
+	originalURL, exists := urlStore[shortCode]
+
+	if !exists {
+		fmt.Fprintln(w, "Short URL not found")
+		return
+	}
+
+	fmt.Fprintln(w, "Original URL:", originalURL)
 }
 
 type URLRequest struct {
 	URL string `json:"url"`
 }
 
+var urlStore = make(map[string]string)
+
 func main() {
 
 	fmt.Println("Server is running on port 8080")
 	http.HandleFunc("/shorten", handler)
-
-
-
+	http.HandleFunc("/", redirectHandler)
 	http.ListenAndServe(":8080", nil)
 }
