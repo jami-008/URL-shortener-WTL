@@ -9,7 +9,6 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello this is Jami and the server is running\n")
 	fmt.Println(r.Method)
 	if r.Method == "POST" {
 		var req URLRequest
@@ -22,14 +21,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, "URL cannot be empty")
 			return
 		}
-		fmt.Fprintln(w, "Received URL:", req.URL)
+
 		shortCode := generateShortCode()
 		urlStore[shortCode] = req.URL
-		fmt.Fprintln(w, "Short Code:", shortCode)
-		fmt.Fprintln(w, "Stored URL:", urlStore[shortCode])
+		response := URLResponse{
+	    OriginalURL: req.URL,
+	    ShortURL:    "http://localhost:8080/" + shortCode,
+		}
 
-	}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
 }
+	}
+
 
 func generateShortCode() string {
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -56,6 +60,11 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 
 type URLRequest struct {
 	URL string `json:"url"`
+}
+
+type URLResponse struct {
+	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
 }
 
 var urlStore = make(map[string]string)
